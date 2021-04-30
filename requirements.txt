@@ -5,3 +5,4 @@ sqlparse==0.4.1
 PyJWT==2.0.1
 djangorestframework==3.12.4
 coreapi==2.3.3
+djangorestframework-simplejwt==4.6.0

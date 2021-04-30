@@ -4,44 +4,47 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from authentication.models import User, Groups
+from authentication.permission import StaffOnly
+from authentication.models import User
 from authentication.serializers import (
-    UserSerializer, UserGroupsSerializer, UserResponseSerializer
+    UserGroupsSerializer, UserResponseSerializer,
+    CustomTokenObtainPairSerializer, UserCreateSerializer
 )
 
 
 class UserViewSet(
-    mixins.RetrieveModelMixin, mixins.DestroyModelMixin,
-    mixins.CreateModelMixin, GenericViewSet
+    mixins.CreateModelMixin, mixins.ListModelMixin, GenericViewSet
 ):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, StaffOnly]
     queryset = User.objects.prefetch_related('groups').filter(is_active=True)
 
     def get_serializer_class(self):
-        if self.action in ['retrieve']:
-            return UserResponseSerializer
-        elif self.action in ['patch', 'add_to_group']:
+        if self.action in ['create']:
+            return UserCreateSerializer
+        elif self.action in ['patch', 'add_to_group', 'destroy']:
             # use for `add_to_group` action
             return UserGroupsSerializer
         else:
-            return UserSerializer
+            return UserResponseSerializer
 
     def get_permissions(self):
         if self.action == 'create':
             return []
+        elif self.action == 'list':
+            return [IsAuthenticated()]
         return super().get_permissions()
 
     @action(
         methods=['patch'], detail=False, url_name='add_to_group'
     )
     def add_to_group(self, request):
-        user = self.get_object()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         groups = serializer.validated_data['groups']
-        group = Groups.objects.filter(title__in=groups, is_active=True)
-        user.groups.add(*group)
+        user = serializer.validated_data['user_id']
+        user.groups.add(*groups)
         return Response({
             'status': True,
             'groups': user.groups.values_list('title', flat=True)
@@ -50,11 +53,18 @@ class UserViewSet(
         )
 
     def destroy(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = UserGroupsSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        group = Groups.objects.filter(
-            title__in=serializer.validated_data['groups']
-        )
-        user.groups.remove(*group)
+        user = serializer.validated_data['user_id']
+        groups = serializer.validated_data['groups']
+        user.groups.remove(*groups)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
