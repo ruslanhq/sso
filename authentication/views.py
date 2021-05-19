@@ -1,6 +1,8 @@
 from rest_framework import mixins
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.generics import UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -10,7 +12,8 @@ from authentication.permission import StaffOnly
 from authentication.models import User
 from authentication.serializers import (
     UserGroupsSerializer, UserResponseSerializer,
-    CustomTokenObtainPairSerializer, UserCreateSerializer
+    CustomTokenObtainPairSerializer, UserCreateSerializer,
+    ChangePasswordSerializer
 )
 
 
@@ -64,6 +67,20 @@ class UserViewSet(
         user = request.user
         serializer = self.get_serializer(user)
         return Response(serializer.data)
+
+
+class ChangePasswordView(UpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ChangePasswordSerializer
+
+    def update(self, *args, **kwargs):
+        raise MethodNotAllowed("PUT", detail="Method 'PUT' not allowed")
+
+    def patch(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
