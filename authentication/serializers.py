@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from authentication.fields import RPCEndpointField
-from authentication.models import User, Groups
+from authentication.models import User, Groups, EcomInformation
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -44,8 +44,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
+        return User.objects.create_user(**validated_data)
 
 
 class ChangePasswordSerializer(serializers.ModelSerializer):
@@ -80,6 +79,19 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class EcomInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EcomInformation
+        exclude = ('id',)
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        ecom_info = EcomInformation.objects.create(**validated_data)
+        user.company = ecom_info
+        user.save()
+        return ecom_info
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
