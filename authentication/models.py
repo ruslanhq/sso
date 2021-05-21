@@ -16,6 +16,21 @@ class Groups(models.Model):
         return self.title
 
 
+class EcomInformation(models.Model):
+    title = models.CharField(max_length=255)
+    law_definition = models.CharField(
+        max_length=20,
+        help_text='Наименование организационно-правовой формы'
+    )
+    address = models.CharField(max_length=255)
+    phone = models.CharField(max_length=255)
+    email = models.EmailField(max_length=40, null=True, blank=True)
+    website = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(db_index=True, max_length=255, unique=True)
     email = models.EmailField(db_index=True, unique=True)
@@ -24,6 +39,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     groups = models.ManyToManyField(Groups, related_name='users')
+    company = models.ForeignKey(
+        EcomInformation,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True
+    )
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

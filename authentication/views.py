@@ -5,7 +5,7 @@ from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from authentication.permission import StaffOnly
@@ -13,7 +13,7 @@ from authentication.models import User
 from authentication.serializers import (
     UserGroupsSerializer, UserResponseSerializer,
     CustomTokenObtainPairSerializer, UserCreateSerializer,
-    ChangePasswordSerializer
+    ChangePasswordSerializer, EcomInfoSerializer
 )
 
 
@@ -81,6 +81,27 @@ class ChangePasswordView(UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(status=status.HTTP_200_OK)
+
+
+class EcomInfoView(
+    mixins.CreateModelMixin, mixins.ListModelMixin,
+    UpdateAPIView, GenericViewSet
+):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = EcomInfoSerializer
+
+    def list(self, request, *args, **kwargs):
+        ecom_info = request.user.company
+        serializer = self.get_serializer(ecom_info)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            request.user.company, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
