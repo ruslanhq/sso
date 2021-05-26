@@ -1,0 +1,30 @@
+{
+  "listeners": {
+    "*:8001": {
+      "pass": "routes"
+    }
+  },
+  "routes": [
+    {
+      "match": {
+        "uri": "/static/*"
+      },
+      "action": {
+        "share": "/app"
+      }
+    },
+    {
+      "action": {
+        "pass": "applications/django"
+      }
+    }
+  ],
+  "applications": {
+    "django": {
+      "type": "python 3.9",
+      "path": "/app",
+      "home": "/usr/local",
+      "module": "sso.wsgi"
+    }
+  }
+}
